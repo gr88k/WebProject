@@ -1,7 +1,7 @@
-#1. Аутентификация пользователя
-##POST /api/auth/regsiter Регистрация нового пользователя
+**1. Аутентификация пользователя**
+**POST /api/auth/regsiter Регистрация нового пользователя**
 Тело запроса:
-{"username": "johndoe","email": "john@example.com","password": "securepassword123",}
+`{"username": "johndoe","email": "john@example.com","password": "securepassword123",}`
 
 Успешный ответ (201 Created): {"id": 1,"username": "johndoe","email": "john@example.com","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
 
