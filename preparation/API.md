@@ -1,11 +1,12 @@
 **1. Аутентификация пользователя**
+
 **POST /api/auth/regsiter Регистрация нового пользователя**
-Тело запроса:
-`{"username": "johndoe","email": "john@example.com","password": "securepassword123",}`
 
-Успешный ответ (201 Created): {"id": 1,"username": "johndoe","email": "john@example.com","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+Тело запроса: `{"username": "johndoe","email": "john@example.com","password": "securepassword123",}`
 
-Ошибка (400 Bad Request): {"error": "User with this email already exists"}
+Успешный ответ (201 Created): `{"id": 1,"username": "johndoe","email": "john@example.com","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}`
+
+Ошибка (400 Bad Request): `{"error": "User with this email already exists"}`
 
 
 POST /api/auth/login Вход в систему
