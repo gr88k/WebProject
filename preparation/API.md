@@ -1,6 +1,6 @@
 **1. Аутентификация пользователя**
 
-**POST /api/auth/regsiter Регистрация нового пользователя**
+**POST /api/auth/register Регистрация нового пользователя**
 
 Тело запроса: `{"username": "johndoe","email": "john@example.com","password": "securepassword123",}`
 
