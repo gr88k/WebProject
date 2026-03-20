@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Школьная Соцсеть</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // === MOCK DATA ===
+        const INITIAL_USERS = [
+            { id: 1, name: "Алексей Смирнов", email: "admin@school.ru", password: "123", role: "admin", class: "10-Б" },
+            { id: 2, name: "Мария Иванова", email: "maria@school.ru", password: "123", role: "user", class: "9-А" },
+            { id: 3, name: "Елена Петрова", email: "moder@school.ru", password: "123", role: "moderator", class: "11-Б" },
+            { id: 4, name: "Дмитрий Козлов", email: "dima@school.ru", password: "123", role: "user", class: "10-А" }
+        ];
+
+        const INITIAL_POSTS = [
+            { id: 1, authorId: 1, content: "Объявление: родительское собрание в пятницу!", time: "10:00" },
+            { id: 2, authorId: 3, content: "Не забудьте сдать тетради до конца недели", time: "Вчера" }
+        ];
+
+        const INITIAL_EVENTS = [
+            { id: 1, title: "День открытых дверей", date: 15, month: 10 },
+            { id: 2, title: "Олимпиада по математике", date: 18, month: 10 },
+            { id: 3, title: "Футбольный матч", date: 22, month: 10 }
+        ];
+
+        const INITIAL_GROUPS = [
+            { id: 1, name: "10-Б Класс", members: [1], creatorId: 1 },
+            { id: 2, name: "Школьный Театр", members: [3], creatorId: 3 },
+            { id: 3, name: "Программирование", members: [1, 4], creatorId: 1 }
+        ];
+
+        const INITIAL_MESSAGES = [
+            { id: 1, fromId: 2, toId: 1, text: "Привет! Как дела?", time: "10:00", type: "private" },
+            { id: 2, fromId: 1, toId: 2, text: "Привет, нормально!", time: "10:05", type: "private" },
+            { id: 3, fromId: 4, toId: 1, text: "Скинь домашку", time: "09:30", type: "private" }
+        ];
+
+        const INITIAL_GROUP_MESSAGES = [
+            { id: 1, groupId: 1, fromId: 1, text: "Всем привет в чате класса!", time: "09:00" }
+        ];
+
+        // === COMPONENTS ===
+
+        const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, type = "button" }) => {
+            const colors = {
+                primary: "bg-blue-600 hover:bg-blue-700 text-white",
+                secondary: "bg-gray-300 hover:bg-gray-400 text-gray-800",
+                danger: "bg-red-600 hover:bg-red-700 text-white"
+            };
+            return (
+                <button
+                    type={type}
+                    onClick={onClick}
+                    disabled={disabled}
+                    className={`px-4 py-2 rounded font-medium transition ${colors[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+                >
+                    {children}
+                </button>
+            );
+        };
+
+        const Input = ({ label, type = "text", placeholder, value, onChange, name, required = false }) => (
+            <div className="mb-3">
+                {label && <label className="block text-sm text-gray-600 mb-1">{label}</label>}
+                <input
+                    type={type}
+                    name={name}
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
+                    required={required}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                />
+            </div>
+        );
+
+        // === LOGIN/REGISTER PAGE ===
+        const AuthPage = ({ onLogin, onRegister, users }) => {
+            const [isRegister, setIsRegister] = useState(false);
+            const [formData, setFormData] = useState({
+                name: "",
+                email: "",
+                password: "",
+                class: ""
+            });
+            const [error, setError] = useState("");
+
+            const handleChange = (e) => {
+                setFormData({ ...formData, [e.target.name]: e.target.value });
+                setError("");
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                
+                if (isRegister) {
+                    // Регистрация
+                    if (!formData.name || !formData.email || !formData.password || !formData.class) {
+                        setError("Заполните все поля");
+                        return;
+                    }
+                    if (users.find(u => u.email === formData.email)) {
+                        setError("Пользователь с таким email уже существует");
+                        return;
+                    }
+                    onRegister({
+                        ...formData,
+                        role: "user",
+                        id: users.length + 1
+                    });
+                } else {
+                    // Вход
+                    const user = users.find(u => u.email === formData.email && u.password === formData.password);
+                    if (!user) {
+                        setError("Неверный email или пароль");
+                        return;
+                    }
+                    onLogin(user);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h1 className="text-2xl font-bold text-center mb-6">Школьная Соцсеть</h1>
+                        
+                        <form onSubmit={handleSubmit}>
+                            {isRegister && (
+                                <>
+                                    <Input
+                                        label="Имя и фамилия"
+                                        name="name"
+                                        placeholder="Иван Иванов"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <Input
+                                        label="Класс"
+                                        name="class"
+                                        placeholder="10-Б"
+                                        value={formData.class}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </>
+                            )}
+                            
+                            <Input
+                                label="Email"
+                                type="email"
+                                name="email"
+                                placeholder="student@school.ru"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required
+                            />
+                            
+                            <Input
+                                label="Пароль"
+                                type="password"
+                                name="password"
+                                placeholder="••••••••"
+                                value={formData.password}
+                                onChange={handleChange}
+                                required
+                            />
+
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded mb-3 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            <Button type="submit" className="w-full mt-4">
+                                {isRegister ? "Зарегистрироваться" : "Войти"}
+                            </Button>
+                        </form>
+
+                        <div className="mt-4 text-center text-sm">
+                            {isRegister ? "Уже есть аккаунт? " : "Нет аккаунта? "}
+                            <button
+                                onClick={() => {
+                                    setIsRegister(!isRegister);
+                                    setFormData({ name: "", email: "", password: "", class: "" });
+                                    setError("");
+                                }}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {isRegister ? "Войти" : "Зарегистрироваться"}
+                            </button>
+                        </div>
+
+                        {!isRegister && (
+                            <div className="mt-6 p-3 bg-gray-50 rounded text-xs text-gray-600">
+                                <p className="font-semibold mb-1">Тестовые аккаунты:</p>
+                                <p>admin@school.ru / 123 (Админ)</p>
+                                <p>moder@school.ru / 123 (Модератор)</p>
+                                <p>maria@school.ru / 123 (Ученик)</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // === FEED PAGE ===
+        const FeedPage = ({ currentUser, posts, onAddPost }) => {
+            const [newPost, setNewPost] = useState("");
+            const canPost = currentUser.role === "admin" || currentUser.role === "moderator";
+
+            const handlePost = () => {
+                if (!newPost.trim()) return;
+                onAddPost(newPost);
+                setNewPost("");
+            };
+
+            const getAuthorName = (authorId) => {
+                const user = INITIAL_USERS.find(u => u.id === authorId);
+                return user ? user.name : "Неизвестно";
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto p-4">
+                    <h2 className="text-xl font-bold mb-4">Лента новостей</h2>
+
+                    {canPost ? (
+                        <div className="bg-white p-4 rounded-lg shadow mb-6">
+                            <textarea
+                                placeholder="Написать объявление..."
+                                value={newPost}
+                                onChange={(e) => setNewPost(e.target.value)}
+                                className="w-full border border-gray-300 rounded p-2 mb-2 h-24 resize-none"
+                            />
+                            <Button onClick={handlePost}>Опубликовать</Button>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Ваш статус: {currentUser.role === "admin" ? "Администратор" : "Модератор"}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-6">
+                            <p className="text-sm text-yellow-800">
+                                Только администраторы и модераторы могут публиковать новости.
+                            </p>
+                        </div>
+                    )}
+
+                    {posts.map(post => (
+                        <div key={post.id} className="bg-white p-4 rounded-lg shadow mb-3">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="font-semibold">{getAuthorName(post.authorId)}</span>
+                                <span className="text-sm text-gray-500">{post.time}</span>
+                            </div>
+                            <p className="text-gray-800">{post.content}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // === CHAT PAGE ===
+        const ChatPage = ({ currentUser, messages, groupMessages, groups, onSendMessage, onSendGroupMessage }) => {
+            const [selectedTab, setSelectedTab] = useState("private");
+            const [selectedUserId, setSelectedUserId] = useState(null);
+            const [selectedGroupId, setSelectedGroupId] = useState(null);
+            const [messageText, setMessageText] = useState("");
+
+            const otherUsers = INITIAL_USERS.filter(u => u.id !== currentUser.id);
+            
+            const chatMessages = messages.filter(
+                m => (m.fromId === currentUser.id && m.toId === selectedUserId) ||
+                     (m.fromId === selectedUserId && m.toId === currentUser.id)
+            );
+
+            const userGroups = groups.filter(g => g.members.includes(currentUser.id));
+            const groupChatMessages = selectedGroupId 
+                ? groupMessages.filter(m => m.groupId === selectedGroupId)
+                : [];
+
+            const handleSend = () => {
+                if (!messageText.trim()) return;
+                
+                if (selectedTab === "private" && selectedUserId) {
+                    onSendMessage(selectedUserId, messageText);
+                } else if (selectedTab === "group" && selectedGroupId) {
+                    onSendGroupMessage(selectedGroupId, messageText);
+                }
+                setMessageText("");
+            };
+
+            const getUserName = (id) => {
+                const user = INITIAL_USERS.find(u => u.id === id);
+                return user ? user.name : "Неизвестно";
+            };
+
+            const getGroupName = (id) => {
+                const group = groups.find(g => g.id === id);
+                return group ? group.name : "Неизвестно";
+            };
+
+            return (
+                <div className="max-w-5xl mx-auto p-4 h-[calc(100vh-150px)]">
+                    <h2 className="text-xl font-bold mb-4">Сообщения</h2>
+                    
+                    {/* Tabs */}
+                    <div className="flex gap-2 mb-4">
+                        <button
+                            onClick={() => {
+                                setSelectedTab("private");
+                                setSelectedGroupId(null);
+                            }}
+                            className={`px-4 py-2 rounded font-medium ${
+                                selectedTab === "private" 
+                                    ? "bg-blue-600 text-white" 
+                                    : "bg-white text-gray-700 hover:bg-gray-100"
+                            }`}
+                        >
+                            Личные
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSelectedTab("group");
+                                setSelectedUserId(null);
+                            }}
+                            className={`px-4 py-2 rounded font-medium ${
+                                selectedTab === "group" 
+                                    ? "bg-blue-600 text-white" 
+                                    : "bg-white text-gray-700 hover:bg-gray-100"
+                            }`}
+                        >
+                            Группы ({userGroups.length})
+                        </button>
+                    </div>
+
+                    <div className="flex gap-4 h-full">
+                        {/* List */}
+                        <div className="w-64 bg-white rounded-lg shadow overflow-hidden">
+                            <div className="p-3 border-b font-semibold">
+                                {selectedTab === "private" ? "Чаты" : "Мои группы"}
+                            </div>
+                            
+                            {selectedTab === "private" ? (
+                                otherUsers.map(user => (
+                                    <div
+                                        key={user.id}
+                                        onClick={() => setSelectedUserId(user.id)}
+                                        className={`p-3 cursor-pointer hover:bg-gray-50 border-b ${
+                                            selectedUserId === user.id ? 'bg-blue-50' : ''
+                                        }`}
+                                    >
+                                        <div className="font-medium">{user.name}</div>
+                                        <div className="text-sm text-gray-500">{user.class}</div>
+                                    </div>
+                                ))
+                            ) : (
+                                userGroups.length > 0 ? (
+                                    userGroups.map(group => (
+                                        <div
+                                            key={group.id}
+                                            onClick={() => setSelectedGroupId(group.id)}
+                                            className={`p-3 cursor-pointer hover:bg-gray-50 border-b ${
+                                                selectedGroupId === group.id ? 'bg-blue-50' : ''
+                                            }`}
+                                        >
+                                            <div className="font-medium">{group.name}</div>
+                                            <div className="text-sm text-gray-500">{group.members.length} участников</div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-3 text-sm text-gray-500">
+                                        Вы не состоите ни в одной группе
+                                    </div>
+                                )
+                            )}
+                        </div>
+
+                        {/* Chat Area */}
+                        <div className="flex-1 bg-white rounded-lg shadow flex flex-col">
+                            {selectedTab === "private" ? (
+                                selectedUserId ? (
+                                    <>
+                                        <div className="p-3 border-b font-semibold">
+                                            {getUserName(selectedUserId)}
+                                        </div>
+                                        <div className="flex-1 p-3 overflow-y-auto">
+                                            {chatMessages.length === 0 ? (
+                                                <p className="text-gray-500 text-center mt-10">Нет сообщений</p>
+                                            ) : (
+                                                chatMessages.map(msg => (
+                                                    <div
+                                                        key={msg.id}
+                                                        className={`mb-2 p-2 rounded max-w-xs ${
+                                                            msg.fromId === currentUser.id 
+                                                                ? 'bg-blue-500 text-white ml-auto' 
+                                                                : 'bg-gray-200'
+                                                        }`}
+                                                    >
+                                                        <p>{msg.text}</p>
+                                                        <p className={`text-xs mt-1 ${
+                                                            msg.fromId === currentUser.id ? 'text-blue-100' : 'text-gray-500'
+                                                        }`}>
+                                                            {msg.time}
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="p-3 border-t flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Напишите сообщение..."
+                                                value={messageText}
+                                                onChange={(e) => setMessageText(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                                className="flex-1 border border-gray-300 rounded px-3 py-2"
+                                            />
+                                            <Button onClick={handleSend}>Отправить</Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                                        Выберите чат для начала общения
+                                    </div>
+                                )
+                            ) : (
+                                selectedGroupId ? (
+                                    <>
+                                        <div className="p-3 border-b font-semibold">
+                                            {getGroupName(selectedGroupId)} (общий чат)
+                                        </div>
+                                        <div className="flex-1 p-3 overflow-y-auto">
+                                            {groupChatMessages.length === 0 ? (
+                                                <p className="text-gray-500 text-center mt-10">Нет сообщений</p>
+                                            ) : (
+                                                groupChatMessages.map(msg => (
+                                                    <div
+                                                        key={msg.id}
+                                                        className={`mb-2 p-2 rounded max-w-xs ${
+                                                            msg.fromId === currentUser.id 
+                                                                ? 'bg-green-500 text-white ml-auto' 
+                                                                : 'bg-gray-200'
+                                                        }`}
+                                                    >
+                                                        <p className="text-xs font-semibold mb-1">
+                                                            {getUserName(msg.fromId)}
+                                                        </p>
+                                                        <p>{msg.text}</p>
+                                                        <p className={`text-xs mt-1 ${
+                                                            msg.fromId === currentUser.id ? 'text-green-100' : 'text-gray-500'
+                                                        }`}>
+                                                            {msg.time}
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="p-3 border-t flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Напишите сообщение в группу..."
+                                                value={messageText}
+                                                onChange={(e) => setMessageText(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                                className="flex-1 border border-gray-300 rounded px-3 py-2"
+                                            />
+                                            <Button onClick={handleSend}>Отправить</Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                                        Выберите группу для общения
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // === CALENDAR PAGE ===
+        const CalendarPage = ({ events, onAddEvent }) => {
+            const [showModal, setShowModal] = useState(false);
+            const [newEvent, setNewEvent] = useState({ title: "", date: "" });
+
+            const handleAddEvent = (e) => {
+                e.preventDefault();
+                if (!newEvent.title || !newEvent.date) {
+                    alert("Заполните все поля");
+                    return;
+                }
+                onAddEvent({
+                    title: newEvent.title,
+                    date: parseInt(newEvent.date),
+                    month: 10
+                });
+                setNewEvent({ title: "", date: "" });
+                setShowModal(false);
+            };
+
+            const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+            return (
+                <div className="max-w-4xl mx-auto p-4">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold">Календарь мероприятий</h2>
+                        <Button onClick={() => setShowModal(true)}>+ Добавить</Button>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <div className="grid grid-cols-7 gap-2 mb-2 text-center font-semibold text-gray-600">
+                            <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-2">
+                            <div className="h-20"></div>
+                            <div className="h-20"></div>
+                            {days.map(day => {
+                                const event = events.find(e => e.date === day);
+                                return (
+                                    <div
+                                        key={day}
+                                        className={`h-20 border rounded p-1 ${
+                                            event ? 'bg-blue-50 border-blue-300' : 'border-gray-200'
+                                        }`}
+                                    >
+                                        <span className="text-sm font-medium">{day}</span>
+                                        {event && (
+                                            <div className="text-xs text-blue-700 mt-1 truncate">
+                                                {event.title}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                            <form onSubmit={handleAddEvent} className="bg-white rounded-lg p-6 w-full max-w-md">
+                                <h3 className="text-lg font-bold mb-4">Добавить мероприятие</h3>
+                                <Input
+                                    label="Название"
+                                    placeholder="Например: Родительское собрание"
+                                    value={newEvent.title}
+                                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                                />
+                                <Input
+                                    label="День (1-31)"
+                                    type="number"
+                                    placeholder="15"
+                                    value={newEvent.date}
+                                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                />
+                                <div className="flex gap-2 mt-4">
+                                    <Button 
+                                        type="button"
+                                        variant="secondary" 
+                                        onClick={() => setShowModal(false)} 
+                                        className="flex-1"
+                                    >
+                                        Отмена
+                                    </Button>
+                                    <Button type="submit" className="flex-1">
+                                        Добавить
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // === GROUPS PAGE ===
+        const GroupsPage = ({ groups, currentUser, onCreateGroup, onJoinGroup, onLeaveGroup }) => {
+            const [showModal, setShowModal] = useState(false);
+            const [newGroupName, setNewGroupName] = useState("");
+
+            const handleCreate = (e) => {
+                e.preventDefault();
+                if (!newGroupName.trim()) {
+                    alert("Введите название группы");
+                    return;
+                }
+                onCreateGroup(newGroupName);
+                setNewGroupName("");
+                setShowModal(false);
+            };
+
+            const getCreatorName = (creatorId) => {
+                const user = INITIAL_USERS.find(u => u.id === creatorId);
+                return user ? user.name : "Неизвестно";
+            };
+
+            const isMember = (groupId) => {
+                const group = groups.find(g => g.id === groupId);
+                return group && group.members.includes(currentUser.id);
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto p-4">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold">Группы</h2>
+                        <Button onClick={() => setShowModal(true)}>+ Создать группу</Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {groups.map(group => (
+                            <div key={group.id} className="bg-white rounded-lg shadow p-4">
+                                <h3 className="font-bold text-lg mb-2">{group.name}</h3>
+                                <p className="text-sm text-gray-600 mb-2">
+                                    Создатель: {getCreatorName(group.creatorId)}
+                                </p>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Участников: {group.members.length}
+                                </p>
+                                {isMember(group.id) ? (
+                                    <Button 
+                                        variant="secondary" 
+                                        onClick={() => onLeaveGroup(group.id)}
+                                    >
+                                        Покинуть группу
+                                    </Button>
+                                ) : (
+                                    <Button onClick={() => onJoinGroup(group.id)}>
+                                        Вступить
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {showModal && (
+                        <form onSubmit={handleCreate} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                <h3 className="text-lg font-bold mb-4">Создать группу</h3>
+                                <Input
+                                    label="Название группы"
+                                    placeholder="Например: 10-Б Класс"
+                                    value={newGroupName}
+                                    onChange={(e) => setNewGroupName(e.target.value)}
+                                />
+                                <div className="flex gap-2 mt-4">
+                                    <Button 
+                                        type="button"
+                                        variant="secondary" 
+                                        onClick={() => setShowModal(false)} 
+                                        className="flex-1"
+                                    >
+                                        Отмена
+                                    </Button>
+                                    <Button type="submit" className="flex-1">
+                                        Создать
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            );
+        };
+
+        // === MAIN APP ===
+        const App = () => {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [currentPage, setCurrentPage] = useState("feed");
+            const [users, setUsers] = useState(INITIAL_USERS);
+            const [posts, setPosts] = useState(INITIAL_POSTS);
+            const [events, setEvents] = useState(INITIAL_EVENTS);
+            const [groups, setGroups] = useState(INITIAL_GROUPS);
+            const [messages, setMessages] = useState(INITIAL_MESSAGES);
+            const [groupMessages, setGroupMessages] = useState(INITIAL_GROUP_MESSAGES);
+
+            const handleLogin = (user) => {
+                setCurrentUser(user);
+            };
+
+            const handleRegister = (newUser) => {
+                setUsers([...users, newUser]);
+                setCurrentUser(newUser);
+            };
+
+            const handleLogout = () => {
+                setCurrentUser(null);
+                setCurrentPage("feed");
+            };
+
+            const handleAddPost = (content) => {
+                const newPost = {
+                    id: posts.length + 1,
+                    authorId: currentUser.id,
+                    content,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setPosts([newPost, ...posts]);
+            };
+
+            const handleAddEvent = (event) => {
+                setEvents([...events, { ...event, id: events.length + 1 }]);
+            };
+
+            const handleCreateGroup = (name) => {
+                const newGroup = {
+                    id: groups.length + 1,
+                    name,
+                    members: [currentUser.id],
+                    creatorId: currentUser.id
+                };
+                setGroups([...groups, newGroup]);
+            };
+
+            const handleJoinGroup = (groupId) => {
+                setGroups(groups.map(g => 
+                    g.id === groupId && !g.members.includes(currentUser.id)
+                        ? { ...g, members: [...g.members, currentUser.id] }
+                        : g
+                ));
+            };
+
+            const handleLeaveGroup = (groupId) => {
+                setGroups(groups.map(g => 
+                    g.id === groupId
+                        ? { ...g, members: g.members.filter(id => id !== currentUser.id) }
+                        : g
+                ));
+            };
+
+            const handleSendMessage = (toId, text) => {
+                const newMessage = {
+                    id: messages.length + 1,
+                    fromId: currentUser.id,
+                    toId,
+                    text,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    type: "private"
+                };
+                setMessages([...messages, newMessage]);
+            };
+
+            const handleSendGroupMessage = (groupId, text) => {
+                const newMessage = {
+                    id: groupMessages.length + 1,
+                    groupId,
+                    fromId: currentUser.id,
+                    text,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setGroupMessages([...groupMessages, newMessage]);
+            };
+
+            if (!currentUser) {
+                return <AuthPage onLogin={handleLogin} onRegister={handleRegister} users={users} />;
+            }
+
+            const renderPage = () => {
+                switch (currentPage) {
+                    case "feed":
+                        return <FeedPage currentUser={currentUser} posts={posts} onAddPost={handleAddPost} />;
+                    case "chat":
+                        return (
+                            <ChatPage 
+                                currentUser={currentUser} 
+                                messages={messages}
+                                groupMessages={groupMessages}
+                                groups={groups}
+                                onSendMessage={handleSendMessage}
+                                onSendGroupMessage={handleSendGroupMessage}
+                            />
+                        );
+                    case "calendar":
+                        return <CalendarPage events={events} onAddEvent={handleAddEvent} />;
+                    case "groups":
+                        return (
+                            <GroupsPage 
+                                groups={groups} 
+                                currentUser={currentUser} 
+                                onCreateGroup={handleCreateGroup}
+                                onJoinGroup={handleJoinGroup}
+                                onLeaveGroup={handleLeaveGroup}
+                            />
+                        );
+                    default:
+                        return <FeedPage currentUser={currentUser} posts={posts} onAddPost={handleAddPost} />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="bg-white shadow">
+                        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+                            <h1 className="text-xl font-bold text-blue-600">Школьная Соцсеть</h1>
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm text-gray-600">
+                                    {currentUser.name} ({currentUser.class})
+                                </span>
+                                <Button variant="secondary" onClick={handleLogout}>Выйти</Button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="bg-white border-b">
+                        <div className="max-w-6xl mx-auto px-4">
+                            <div className="flex gap-1">
+                                {[
+                                    { id: "feed", label: "Лента" },
+                                    { id: "chat", label: "Сообщения" },
+                                    { id: "calendar", label: "Календарь" },
+                                    { id: "groups", label: "Группы" }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setCurrentPage(tab.id)}
+                                        className={`px-4 py-3 font-medium border-b-2 transition ${
+                                            currentPage === tab.id
+                                                ? "border-blue-600 text-blue-600"
+                                                : "border-transparent text-gray-600 hover:text-gray-800"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Content */}
+                    <main className="max-w-6xl mx-auto">
+                        {renderPage()}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
