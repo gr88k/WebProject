@@ -1,7 +1,7 @@
 // СТРАНИЦА АВТОРИЗАЦИИ
-const AuthPage = ({ onLogin, onRegister, users }) => {
+const AuthPage = ({ onLogin, onRegister }) => {
     const [isRegister, setIsRegister] = React.useState(false);
-    const [formData, setFormData] = React.useState({ name: "", email: "", password: "", class: "" });
+    const [formData, setFormData] = React.useState({ name: "", email: "", password: "", class_name: "" });
     const [error, setError] = React.useState("");
 
     const handleChange = (e) => {
@@ -12,66 +12,53 @@ const AuthPage = ({ onLogin, onRegister, users }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isRegister) {
-            if (!formData.name || !formData.email || !formData.password || !formData.class) {
+            if (!formData.name || !formData.email || !formData.password || !formData.class_name) {
                 setError("Заполните все поля");
                 return;
             }
-            if (users.find(u => u.email === formData.email)) {
-                setError("Пользователь с таким email уже существует");
-                return;
-            }
-            onRegister({ ...formData, role: "user", id: users.length + 1 });
+            onRegister(formData);
         } else {
-            const user = users.find(u => u.email === formData.email && u.password === formData.password);
-            if (!user) {
-                setError("Неверный email или пароль");
-                return;
-            }
-            onLogin(user);
+            onLogin(formData.email, formData.password);
         }
     };
 
-    return (
-        <div className="auth-page">
-            <div className="auth-card">
-                <h1 className="auth-title">Отечественный мессенджер Максим</h1>
-                <form onSubmit={handleSubmit}>
-
-                    {isRegister && (
-                        <>
-                            <Input label="Имя и фамилия" name="name" placeholder="Иван Иванов" value={formData.name} onChange={handleChange} required />
-                            <Input label="Класс" name="class" placeholder="10-Б" value={formData.class} onChange={handleChange} required />
-                        </>
-                    )}
-
-                    <Input label="Email" type="email" name="email" placeholder="student@school.ru" value={formData.email} onChange={handleChange} required />
-                    <Input label="Пароль" type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
-                    {error && <div className="auth-error">{error}</div>}
-                    <Button type="submit" className="btn-full mt-4">{isRegister ? "Зарегистрироваться" : "Войти"}</Button>
-                </form>
-
-                <div className="text-center mt-4" style={{fontSize: '0.875rem'}}>
-                    {isRegister ? "Уже есть аккаунт? " : "Нет аккаунта? "}
-                    <button onClick={() => { setIsRegister(!isRegister); setFormData({ name: "", email: "", password: "", class: "" }); setError(""); }} className="auth-link">
-                        {isRegister ? "Войти" : "Зарегистрироваться"}
-                    </button>
-                </div>
-
-                {!isRegister && (
-                    <div className="auth-hint">
-                        <p className="auth-hint-title">Тестовые аккаунты:</p>
-                        <p>admin@school.ru / 123 (Админ)</p>
-                        <p>moder@school.ru / 123 (Модератор)</p>
-                        <p>maria@school.ru / 123 (Ученик)</p>
-                    </div>
-                )}
-            </div>
-        </div>
+    return React.createElement("div", { className: "auth-page" },
+        React.createElement("div", { className: "auth-card" },
+            React.createElement("h1", { className: "auth-title" }, "Отечественный мессенджер Максим"),
+            React.createElement("form", { onSubmit: handleSubmit },
+                isRegister && React.createElement(React.Fragment, null,
+                    React.createElement("div", { className: "form-group" },
+                        React.createElement("label", { className: "form-label" }, "Имя"),
+                        React.createElement("input", { type: "text", name: "name", placeholder: "Иван Иванов", value: formData.name, onChange: handleChange, required: true, className: "form-input" })
+                    ),
+                    React.createElement("div", { className: "form-group" },
+                        React.createElement("label", { className: "form-label" }, "Класс"),
+                        React.createElement("input", { type: "text", name: "class_name", placeholder: "10-Б", value: formData.class_name, onChange: handleChange, required: true, className: "form-input" })
+                    )
+                ),
+                React.createElement("div", { className: "form-group" },
+                    React.createElement("label", { className: "form-label" }, "Email"),
+                    React.createElement("input", { type: "email", name: "email", placeholder: "student@school.ru", value: formData.email, onChange: handleChange, required: true, className: "form-input" })
+                ),
+                React.createElement("div", { className: "form-group" },
+                    React.createElement("label", { className: "form-label" }, "Пароль"),
+                    React.createElement("input", { type: "password", name: "password", placeholder: "••••••••", value: formData.password, onChange: handleChange, required: true, className: "form-input" })
+                ),
+                error && React.createElement("div", { className: "auth-error" }, error),
+                React.createElement("button", { type: "submit", className: "btn btn-primary btn-full mt-4" }, isRegister ? "Зарегистрироваться" : "Войти")
+            ),
+            React.createElement("div", { className: "text-center mt-4", style: { fontSize: "0.875rem" } },
+                isRegister ? "Уже есть аккаунт? " : "Нет аккаунта? ",
+                React.createElement("button", { type: "button", className: "auth-link", onClick: () => { setIsRegister(!isRegister); setFormData({ name: "", email: "", password: "", class_name: "" }); setError(""); } }, isRegister ? "Войти" : "Зарегистрироваться")
+            )
+        )
     );
 };
 
 // ЛЕНТА НОВОСТЕЙ
-const FeedPage = ({ currentUser, posts, comments, onAddPost, onAddComment }) => {
+const FeedPage = ({ currentUser, posts, commentsByPost, onAddPost, onAddComment }) => {
+    if (!currentUser) return React.createElement("div", null, "Загрузка...");
+
     const [newPost, setNewPost] = React.useState("");
     const [openComments, setOpenComments] = React.useState({});
     const [commentInputs, setCommentInputs] = React.useState({});
@@ -95,192 +82,285 @@ const FeedPage = ({ currentUser, posts, comments, onAddPost, onAddComment }) => 
         setOpenComments({ ...openComments, [postId]: !openComments[postId] });
     };
 
-    const getAuthorName = (authorId) => {
-        const user = INITIAL_USERS.find(u => u.id === authorId);
-        return user ? user.name : "Неизвестно";
-    };
-
     const getPostComments = (postId) => {
-        return comments.filter(c => c.postId === postId);
+        return (commentsByPost?.[postId] || []);
     };
 
-    return (
-        <div className="feed-container">
-            <h2 className="page-title">Лента новостей</h2>
-            
-            {canPost ? (
-                <div className="create-post">
-                    <textarea 
-                        placeholder="Написать объявление..." 
-                        value={newPost} 
-                        onChange={(e) => setNewPost(e.target.value)} 
-                        className="create-post-textarea"
-                        rows="4"
-                    />
+    const getCommentAuthorName = (comment) => {
+        if (comment.author_name) return comment.author_name;
+        if (comment.author?.name) return comment.author.name;
+        const user = (allUsers || []).find(u => u.id === comment.author_id);
+        return user ? user.name : `Пользователь #${comment.author_id}`;
+    };
 
-                    <Button onClick={handlePost}>Опубликовать</Button>
-                    <p className="create-post-status">Ваш статус: {currentUser.role === "admin" ? "Администратор" : "Модератор"}</p>
-                </div>
+    return React.createElement("div", { className: "feed-container" },
+        React.createElement("h2", { className: "page-title" }, "Лента новостей"),
+        canPost
+            ? React.createElement("div", { className: "create-post" },
+                React.createElement("textarea", { placeholder: "Написать объявление...", value: newPost, onChange: (e) => setNewPost(e.target.value), className: "create-post-textarea", rows: "4" }),
+                React.createElement("button", { onClick: handlePost, className: "btn btn-primary" }, "Опубликовать"),
+                React.createElement("p", { className: "create-post-status" }, `Ваш статус: ${currentUser.role === "admin" ? "Администратор" : "Модератор"}`)
+            )
+            : React.createElement("div", { className: "no-permission" }, "Только администраторы и модераторы могут публиковать новости."),
+        (posts || []).map(post => {
+            const postComments = getPostComments(post.id);
+            const isOpen = openComments[post.id];
+            const commentValue = commentInputs[post.id] || "";
 
-            ) : (
-                <div className="no-permission">Только администраторы и модераторы могут публиковать новости.</div>
-            )}
-
-            {posts.map(post => {
-                const postComments = getPostComments(post.id);
-                const isOpen = openComments[post.id];
-                const commentValue = commentInputs[post.id] || "";
-                
-                return (
-                    <div key={post.id} className="post">
-                        <div className="post-header">
-
-                            <span className="post-author">{getAuthorName(post.authorId)}</span>
-                            <span className="post-time">{post.time}</span>
-
-                        </div>
-                        <p className="post-content">{post.content}</p>
-                        
-                        <button 
-                            onClick={() => toggleComments(post.id)}
-                            className="comment-toggle-btn"
-                        >
-                            💬 Комментарии ({postComments.length})
-                        </button>
-
-                        {isOpen && (
-                            <div className="comments-section">
-                                {postComments.length > 0 ? (
-                                    postComments.map(comment => (
-                                        <div key={comment.id} className="comment">
-                                            <div className="comment-header">
-
-                                                <span className="comment-author">{getAuthorName(comment.authorId)}</span>
-                                                <span className="comment-time">{comment.time}</span>
-
-                                            </div>
-                                            <p className="comment-text">{comment.content}</p>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="no-comments">Нет комментариев</p>
-                                )}
-                                
-                                <div className="add-comment">
-                                    <input
-                                        type="text"
-                                        placeholder="Написать комментарий..."
-                                        value={commentValue}
-                                        onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                                        className="comment-input"
-                                    />
-                                    <Button onClick={() => handleAddComment(post.id)} className="btn-small">Отправить</Button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
+            return React.createElement("div", { key: post.id, className: "post" },
+                React.createElement("div", { className: "post-header" },
+                    React.createElement("span", { className: "post-author" }, post.author_name || `Пользователь #${post.author_id}`),
+                    React.createElement("span", { className: "post-time" }, 
+                        post.created_at ? new Date(post.created_at).toLocaleString('ru-RU') : ''
+                    )
+                ),
+                React.createElement("p", { className: "post-content" }, post.content),
+                React.createElement("button", { onClick: () => toggleComments(post.id), className: "comment-toggle-btn" }, `💬 Комментарии (${postComments.length})`),
+                isOpen && React.createElement("div", { className: "comments-section" },
+                    postComments.length > 0
+                        ? postComments.map(comment => React.createElement("div", { key: comment.id, className: "comment" },
+                            React.createElement("div", { className: "comment-header" },
+                                React.createElement("span", { className: "comment-author" }, comment.author_name || `Пользователь #${comment.author_id}`),
+                                React.createElement("span", { className: "comment-time" }, 
+                                    comment.created_at ? new Date(comment.created_at).toLocaleString('ru-RU') : ''
+                                )
+                            ),
+                            React.createElement("p", { className: "comment-text" }, comment.content)
+                        ))
+                        : React.createElement("p", { className: "no-comments" }, "Нет комментариев"),
+                    React.createElement("div", { className: "add-comment" },
+                        React.createElement("input", { type: "text", placeholder: "Написать комментарий...", value: commentValue, onChange: (e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value }), onKeyPress: (e) => e.key === 'Enter' && handleAddComment(post.id), className: "comment-input" }),
+                        React.createElement("button", { onClick: () => handleAddComment(post.id), className: "btn btn-primary btn-small" }, "Отправить")
+                    )
+                )
+            );
+        })
     );
 };
 
 // ЧАТЫ
-const ChatPage = ({ currentUser, messages, groupMessages, groups, onSendMessage, onSendGroupMessage }) => {
+const ChatPage = ({ currentUser, messages, groupMessages, groups, allUsers, onSendMessage, onLoadGroupMessages, setGroupMessages, onSearchUsers }) => {
+    if (!currentUser) return React.createElement("div", null, "Загрузка...");
+
     const [selectedTab, setSelectedTab] = React.useState("private");
     const [selectedUserId, setSelectedUserId] = React.useState(null);
     const [selectedGroupId, setSelectedGroupId] = React.useState(null);
     const [messageText, setMessageText] = React.useState("");
+    const [searchQuery, setSearchQuery] = React.useState("");
+    const [searchResults, setSearchResults] = React.useState([]);
 
-    const otherUsers = INITIAL_USERS.filter(u => u.id !== currentUser.id);
-    const chatMessages = messages.filter(m => (m.fromId === currentUser.id && m.toId === selectedUserId) || (m.fromId === selectedUserId && m.toId === currentUser.id));
-    const userGroups = groups.filter(g => g.members.includes(currentUser.id));
-    const groupChatMessages = selectedGroupId ? groupMessages.filter(m => m.groupId === selectedGroupId) : [];
+    const chatUserIds = React.useMemo(() => {
+        const userIds = new Set();
+        (messages || []).forEach(msg => {
+            if (msg.from_id !== currentUser.id) userIds.add(msg.from_id);
+            if (msg.to_id && msg.to_id !== currentUser.id) userIds.add(msg.to_id);
+        });
+        return Array.from(userIds);
+    }, [messages, currentUser.id]);
 
-    const handleSend = () => {
-        if (!messageText.trim()) return;
-        if (selectedTab === "private" && selectedUserId) onSendMessage(selectedUserId, messageText);
-        else if (selectedTab === "group" && selectedGroupId) onSendGroupMessage(selectedGroupId, messageText);
-        setMessageText("");
+    const chatUsersWithInfo = chatUserIds.map(id => {
+        const user = (allUsers || []).find(u => u.id === id);
+        return user || { id, name: `Пользователь #${id}`, class_name: "" };
+    });
+
+    const displayUsers = searchQuery.trim().length >= 2
+        ? (searchResults || []).length > 0 ? (searchResults || []) : (allUsers || []).filter(u => u.id !== currentUser.id)
+        : chatUsersWithInfo;
+
+    const userGroups = (groups || []).filter(g => (g.members || []).includes(currentUser.id));
+
+    const getUserName = (id) => {
+        const user = (allUsers || []).find(u => u.id === id);
+        return user ? user.name : `Пользователь #${id}`;
     };
 
-    const getUserName = (id) => INITIAL_USERS.find(u => u.id === id)?.name || "Неизвестно";
-    const getGroupName = (id) => groups.find(g => g.id === id)?.name || "Неизвестно";
+    const getGroupName = (id) => {
+        const group = (groups || []).find(g => g.id === id);
+        return group ? group.name : "Группа";
+    };
 
-    return (
-        <div className="chat-container">
-            <h2 className="page-title">Сообщения</h2>
+    const getChatMessages = () => {
+        if (!selectedUserId) return [];
+        return (messages || []).filter(m =>
+            (m.from_id === currentUser.id && m.to_id === selectedUserId) ||
+            (m.from_id === selectedUserId && m.to_id === currentUser.id)
+        ).sort((a, b) => new Date(a.created_at || a.time) - new Date(b.created_at || b.time));
+    };
 
-            <div className="chat-tabs">
-                <button onClick={() => { setSelectedTab("private"); setSelectedGroupId(null); }} className={`chat-tab ${selectedTab === "private" ? 'active' : ''}`}>Личные</button>
-                <button onClick={() => { setSelectedTab("group"); setSelectedUserId(null); }} className={`chat-tab ${selectedTab === "group" ? 'active' : ''}`}>Группы ({userGroups.length})</button>
-            </div>
+    const getGroupChatMessages = () => {
+        if (!selectedGroupId) return [];
+        return (groupMessages?.[selectedGroupId] || []).sort((a, b) =>
+            new Date(a.created_at || a.time) - new Date(b.created_at || b.time)
+        );
+    };
 
-            <div className="chat-wrapper">
-                <div className="chat-sidebar">
+    React.useEffect(() => {
+        if (selectedGroupId && onLoadGroupMessages) {
+            onLoadGroupMessages(selectedGroupId).then(msgs => {
+                if (setGroupMessages) setGroupMessages(prev => ({ ...prev, [selectedGroupId]: msgs }));
+            }).catch(console.error);
+        }
+    }, [selectedGroupId]);
 
-                    <div className="chat-sidebar-title">{selectedTab === "private" ? "Чаты" : "Мои группы"}</div>
-                    <div className="chat-list">
+    React.useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (searchQuery.trim().length >= 2 && onSearchUsers) {
+                onSearchUsers(searchQuery).then(results => {
+                    setSearchResults(results || []);
+                }).catch(() => setSearchResults([]));
+            } else {
+                setSearchResults([]);
+            }
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
 
-                        {selectedTab === "private" ? otherUsers.map(user => (
-                            <div key={user.id} onClick={() => setSelectedUserId(user.id)} className={`chat-item ${selectedUserId === user.id ? 'active' : ''}`}>
-                                <div className="chat-item-name">{user.name}</div>
-                                <div className="chat-item-class">{user.class}</div>
-                            </div>
-
-                        )) : userGroups.length > 0 ? userGroups.map(group => (
-                            <div key={group.id} onClick={() => setSelectedGroupId(group.id)} className={`chat-item ${selectedGroupId === group.id ? 'active' : ''}`}>
-                                
-                                <div className="chat-item-name">{group.name}</div>
-                                <div className="chat-item-class">{group.members.length} участников</div>
-
-                            </div>
-                        )) : <div className="chat-item" style={{cursor: 'default'}}>Вы не состоите ни в одной группе</div>}
-                    </div>
-                </div>
-                <div className="chat-area">
-                    {selectedTab === "private" ? selectedUserId ? (
-                        <>
-                            <div className="chat-area-header">{getUserName(selectedUserId)}</div>
-                            <div className="chat-messages">
-
-                                {chatMessages.length === 0 ? <p className="chat-empty">Нет сообщений</p> : chatMessages.map(msg => (
-                                    <div key={msg.id} className={`chat-message ${msg.fromId === currentUser.id ? 'own' : 'other'}`}>
-                                        <p className="chat-message-text">{msg.text}</p>
-                                        <p className="chat-message-time">{msg.time}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="chat-input-wrapper">
-                                <input type="text" placeholder="Напишите сообщение..." value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} className="chat-input" />
-                                <Button onClick={handleSend}>Отправить</Button>
-                            </div>
-                        </>
-                    ) : <div className="chat-placeholder">Выберите чат для начала общения</div> : selectedGroupId ? (
-                        <>
-                            <div className="chat-area-header">{getGroupName(selectedGroupId)} (общий чат)</div>
-                            <div className="chat-messages">
-
-                                {groupChatMessages.length === 0 ? <p className="chat-empty">Нет сообщений</p> : groupChatMessages.map(msg => (
-                                    <div key={msg.id} className={`chat-message ${msg.fromId === currentUser.id ? 'own' : 'other'}`}>
-                                        <p className="chat-message-author">{getUserName(msg.fromId)}</p>
-                                        <p className="chat-message-text">{msg.text}</p>
-                                        <p className="chat-message-time">{msg.time}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="chat-input-wrapper">
-                                <input type="text" placeholder="Напишите сообщение в группу..." value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} className="chat-input" />
-                                <Button onClick={handleSend}>Отправить</Button>
-                            </div>
-                        </>
-                    ) : <div className="chat-placeholder">Выберите группу для общения</div>}
-                </div>
-            </div>
-        </div>
+    return React.createElement("div", { className: "chat-container" },
+        React.createElement("h2", { className: "page-title" }, "Сообщения"),
+        React.createElement("div", { className: "chat-tabs" },
+            React.createElement("button", {
+                onClick: () => { setSelectedTab("private"); setSelectedGroupId(null); },
+                className: `chat-tab ${selectedTab === "private" ? "active" : ""}`
+            }, "Личные"),
+            React.createElement("button", {
+                onClick: () => { setSelectedTab("group"); setSelectedUserId(null); },
+                className: `chat-tab ${selectedTab === "group" ? "active" : ""}`
+            }, `Группы (${userGroups.length})`)
+        ),
+        React.createElement("div", { className: "chat-wrapper" },
+            React.createElement("div", { className: "chat-sidebar" },
+                React.createElement("div", { className: "chat-sidebar-title" },
+                    selectedTab === "private" ? "Чаты" : "Мои группы"
+                ),
+                selectedTab === "private" && React.createElement("div", { className: "chat-search" },
+                    React.createElement("input", {
+                        type: "text",
+                        placeholder: "Поиск пользователей...",
+                        value: searchQuery,
+                        onChange: (e) => setSearchQuery(e.target.value),
+                        className: "chat-search-input"
+                    })
+                ),
+                React.createElement("div", { className: "chat-list" },
+                    selectedTab === "private"
+                        ? searchQuery.trim().length >= 2
+                            ? (displayUsers || []).length > 0
+                                ? (displayUsers || []).map(user =>
+                                    React.createElement("div", {
+                                        key: user.id,
+                                        onClick: () => {
+                                            setSelectedUserId(user.id);
+                                            setSearchQuery("");
+                                            setSearchResults([]);
+                                        },
+                                        className: `chat-item ${selectedUserId === user.id ? "active" : ""} ${!chatUserIds.includes(user.id) ? "new-user" : ""}`
+                                    },
+                                        React.createElement("div", { className: "chat-item-name" },
+                                            user.name,
+                                            !chatUserIds.includes(user.id) && React.createElement("span", { className: "new-badge" }, "")
+                                        ),
+                                        React.createElement("div", { className: "chat-item-class" }, user.class_name || "—")
+                                    )
+                                )
+                                : React.createElement("div", { className: "chat-item" }, "Пользователи не найдены")
+                            : chatUsersWithInfo.length > 0
+                                ? chatUsersWithInfo.map(user =>
+                                    React.createElement("div", {
+                                        key: user.id,
+                                        onClick: () => setSelectedUserId(user.id),
+                                        className: `chat-item ${selectedUserId === user.id ? "active" : ""}`
+                                    },
+                                        React.createElement("div", { className: "chat-item-name" }, user.name),
+                                        React.createElement("div", { className: "chat-item-class" }, user.class_name || "—")
+                                    )
+                                )
+                                : React.createElement("div", { className: "chat-item" }, "Нет активных чатов. Начните поиск!")
+                        : userGroups.length > 0
+                            ? userGroups.map(group =>
+                                React.createElement("div", {
+                                    key: group.id,
+                                    onClick: () => setSelectedGroupId(group.id),
+                                    className: `chat-item ${selectedGroupId === group.id ? "active" : ""}`
+                                },
+                                    React.createElement("div", { className: "chat-item-name" }, group.name),
+                                    React.createElement("div", { className: "chat-item-class" }, `${group.member_count || (group.members?.length || 0)} участников`)
+                                )
+                            )
+                            : React.createElement("div", { className: "chat-item" }, "Вы не состоите ни в одной группе")
+                )
+            ),
+            React.createElement("div", { className: "chat-area" },
+                selectedTab === "private"
+                    ? selectedUserId
+                        ? React.createElement(React.Fragment, null,
+                            React.createElement("div", { className: "chat-area-header" }, getUserName(selectedUserId)),
+                            React.createElement("div", { className: "chat-messages" },
+                                getChatMessages().length > 0
+                                    ? getChatMessages().map(msg =>
+                                        React.createElement("div", {
+                                            key: msg.id,
+                                            className: `message ${msg.from_id === currentUser.id ? "message-sent" : "message-received"}`
+                                        },
+                                            React.createElement("div", { className: "message-content" }, msg.content),
+                                            React.createElement("div", { className: "message-time" },
+                                                new Date(msg.created_at || msg.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            )
+                                        )
+                                    )
+                                    : React.createElement("p", { className: "chat-empty" }, "Нет сообщений. Напишите первым!")
+                            ),
+                            React.createElement("div", { className: "chat-input-wrapper" },
+                                React.createElement("input", {
+                                    type: "text",
+                                    placeholder: "Напишите сообщение...",
+                                    value: messageText,
+                                    onChange: (e) => setMessageText(e.target.value),
+                                    onKeyPress: (e) => e.key === 'Enter' && onSendMessage(selectedUserId, messageText, false) && setMessageText(""),
+                                    className: "chat-input"
+                                }),
+                                React.createElement("button", {
+                                    onClick: () => { onSendMessage(selectedUserId, messageText, false); setMessageText(""); },
+                                    className: "btn btn-primary"
+                                }, "Отправить")
+                            )
+                        )
+                        : React.createElement("div", { className: "chat-placeholder" }, "Выберите пользователя или начните поиск")
+                    : selectedGroupId
+                        ? React.createElement(React.Fragment, null,
+                            React.createElement("div", { className: "chat-area-header" }, `${getGroupName(selectedGroupId)} (общий чат)`),
+                            React.createElement("div", { className: "chat-messages" },
+                                getGroupChatMessages().length > 0
+                                    ? getGroupChatMessages().map(msg =>
+                                        React.createElement("div", {
+                                            key: msg.id,
+                                            className: `message ${msg.from_id === currentUser.id ? "message-sent" : "message-received"}`
+                                        },
+                                            React.createElement("div", { className: "message-content" }, msg.content),
+                                            React.createElement("div", { className: "message-time" },
+                                                new Date(msg.created_at || msg.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            )
+                                        )
+                                    )
+                                    : React.createElement("p", { className: "chat-empty" }, "Групповой чат пока пуст")
+                            ),
+                            React.createElement("div", { className: "chat-input-wrapper" },
+                                React.createElement("input", {
+                                    type: "text",
+                                    placeholder: "Напишите сообщение в группу...",
+                                    value: messageText,
+                                    onChange: (e) => setMessageText(e.target.value),
+                                    onKeyPress: (e) => e.key === 'Enter' && onSendMessage(selectedGroupId, messageText, true) && setMessageText(""),
+                                    className: "chat-input"
+                                }),
+                                React.createElement("button", {
+                                    onClick: () => { onSendMessage(selectedGroupId, messageText, true); setMessageText(""); },
+                                    className: "btn btn-primary"
+                                }, "Отправить")
+                            )
+                        )
+                        : React.createElement("div", { className: "chat-placeholder" }, "Выберите группу для общения")
+            )
+        )
     );
 };
 
@@ -292,110 +372,108 @@ const CalendarPage = ({ events, onAddEvent }) => {
     const handleAddEvent = (e) => {
         e.preventDefault();
         if (!newEvent.title || !newEvent.date) { alert("Заполните все поля"); return; }
-        onAddEvent({ title: newEvent.title, date: parseInt(newEvent.date), month: 10 });
+        onAddEvent({ title: newEvent.title, description: "", event_date: new Date(`${newEvent.date}T12:00:00`) });
         setNewEvent({ title: "", date: "" });
         setShowModal(false);
     };
 
     const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
-    return (
-        <div className="calendar-container">
-            
-            <div className="calendar-header">
-                <h2 className="page-title">Календарь мероприятий</h2>
-                <Button onClick={() => setShowModal(true)}>+ Добавить</Button>
-            </div>
-
-            <div className="calendar-grid">
-                <div className="calendar-weekdays">
-                    <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-                </div>
-
-                <div className="calendar-days">
-                    <div className="calendar-day empty"></div>
-                    <div className="calendar-day empty"></div>
-
-                    {days.map(day => {
-                        const event = events.find(e => e.date === day);
-                        return (
-                            <div key={day} className={`calendar-day ${event ? 'has-event' : ''}`}>
-                                <span className="calendar-day-number">{day}</span>
-                                {event && <div className="calendar-event">{event.title}</div>}
-                            </div>
-                        );
-
-                    })}
-                </div>
-            </div>
-            {showModal && (
-                <div className="modal" onClick={() => setShowModal(false)}>
-                    <form onSubmit={handleAddEvent} className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Добавить мероприятие</h3>
-                        <Input label="Название" placeholder="Например: Родительское собрание" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })} />
-                        <Input label="День (1-31)" type="number" placeholder="15" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })} />
-                        <div className="modal-actions">
-                            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Отмена</Button>
-                            <Button type="submit">Добавить</Button>
-                        </div>
-                    </form>
-                </div>
-            )}
-        </div>
+    return React.createElement("div", { className: "calendar-container" },
+        React.createElement("div", { className: "calendar-header" },
+            React.createElement("h2", { className: "page-title" }, "Календарь мероприятий"),
+            React.createElement("button", { onClick: () => setShowModal(true), className: "btn btn-primary" }, "+ Добавить")
+        ),
+        React.createElement("div", { className: "calendar-grid" },
+            React.createElement("div", { className: "calendar-weekdays" },
+                React.createElement("div", null, "Пн"), React.createElement("div", null, "Вт"), React.createElement("div", null, "Ср"),
+                React.createElement("div", null, "Чт"), React.createElement("div", null, "Пт"), React.createElement("div", null, "Сб"), React.createElement("div", null, "Вс")
+            ),
+            React.createElement("div", { className: "calendar-days" },
+                React.createElement("div", { className: "calendar-day empty" }), React.createElement("div", { className: "calendar-day empty" }),
+                ...days.map(day => {
+                    const event = (events || []).find(e => { const d = new Date(e.event_date); return d.getDate() === day; });
+                    return React.createElement("div", { key: day, className: `calendar-day ${event ? "has-event" : ""}` },
+                        React.createElement("span", { className: "calendar-day-number" }, day),
+                        event && React.createElement("div", { className: "calendar-event" }, event.title)
+                    );
+                })
+            )
+        ),
+        showModal && React.createElement("div", { className: "modal", onClick: () => setShowModal(false) },
+            React.createElement("form", { onSubmit: handleAddEvent, className: "modal-content", onClick: (e) => e.stopPropagation() },
+                React.createElement("h3", { className: "modal-title" }, "Добавить мероприятие"),
+                React.createElement("div", { className: "form-group" },
+                    React.createElement("label", { className: "form-label" }, "Название"),
+                    React.createElement("input", { type: "text", placeholder: "Например: Родительское собрание", value: newEvent.title, onChange: (e) => setNewEvent({ ...newEvent, title: e.target.value }), className: "form-input", required: true })
+                ),
+                React.createElement("div", { className: "form-group" },
+                    React.createElement("label", { className: "form-label" }, "Дата"),
+                    React.createElement("input", { type: "date", value: newEvent.date, onChange: (e) => setNewEvent({ ...newEvent, date: e.target.value }), className: "form-input", required: true })
+                ),
+                React.createElement("div", { className: "modal-actions" },
+                    React.createElement("button", { type: "button", onClick: () => setShowModal(false), className: "btn btn-secondary" }, "Отмена"),
+                    React.createElement("button", { type: "submit", className: "btn btn-primary" }, "Добавить")
+                )
+            )
+        )
     );
 };
 
-// ГРУППЫ 
-const GroupsPage = ({ groups, currentUser, onCreateGroup, onJoinGroup, onLeaveGroup }) => {
+// ГРУППЫ
+const GroupsPage = ({ groups, currentUser, allUsers, onCreateGroup, onJoinGroup, onLeaveGroup }) => {
+    if (!currentUser) return React.createElement("div", null, "Загрузка...");
+
     const [showModal, setShowModal] = React.useState(false);
     const [newGroupName, setNewGroupName] = React.useState("");
 
     const handleCreate = (e) => {
         e.preventDefault();
         if (!newGroupName.trim()) { alert("Введите название группы"); return; }
-        onCreateGroup(newGroupName);
+        onCreateGroup(newGroupName, "");
         setNewGroupName("");
         setShowModal(false);
     };
 
-    const getCreatorName = (creatorId) => INITIAL_USERS.find(u => u.id === creatorId)?.name || "Неизвестно";
-    const isMember = (groupId) => { const group = groups.find(g => g.id === groupId); return group && group.members.includes(currentUser.id); };
+    const getCreatorName = (creatorId) => {
+        const user = (allUsers || []).find(u => u.id === creatorId);
+        return user ? user.name : "Неизвестно";
+    };
 
-    return (
-        <div className="groups-container">
-            <div className="groups-header">
-                <h2 className="page-title">Группы</h2>
-                <Button onClick={() => setShowModal(true)}>+ Создать группу</Button>
-            </div>
+    const isMember = (groupId) => {
+        const group = (groups || []).find(g => g.id === groupId);
+        return group && group.members && group.members.includes(currentUser.id);
+    };
 
-            <div className="groups-grid">
-                {groups.map(group => (
-                    <div key={group.id} className="group-card">
-                        <h3 className="group-name">{group.name}</h3>
-
-                        <p className="group-creator">Создатель: {getCreatorName(group.creatorId)}</p>
-                        <p className="group-members">Участников: {group.members.length}</p>
-                        
-                        {isMember(group.id) ? (
-                            <Button variant="secondary" onClick={() => onLeaveGroup(group.id)} className="btn-full">Покинуть группу</Button>
-                        ) : (
-                            <Button onClick={() => onJoinGroup(group.id)} className="btn-full">Вступить</Button>
-                        )}
-                    </div>
-                ))}
-            </div>
-            {showModal && (
-                <div className="modal" onClick={() => setShowModal(false)}>
-                    <form onSubmit={handleCreate} className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="modal-title">Создать группу</h3>
-                        <Input label="Название группы" placeholder="Например: 10-Б Класс" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
-                        <div className="modal-actions">
-                            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Отмена</Button>
-                            <Button type="submit">Создать</Button>
-                        </div>
-                    </form>
-                </div>
-            )}
-        </div>
+    return React.createElement("div", { className: "groups-container" },
+        React.createElement("div", { className: "groups-header" },
+            React.createElement("h2", { className: "page-title" }, "Группы"),
+            React.createElement("button", { onClick: () => setShowModal(true), className: "btn btn-primary" }, "+ Создать группу")
+        ),
+        React.createElement("div", { className: "groups-grid" },
+            (groups || []).map(group =>
+                React.createElement("div", { key: group.id, className: "group-card" },
+                    React.createElement("h3", { className: "group-name" }, group.name),
+                    React.createElement("p", { className: "group-creator" }, `Создатель: ${getCreatorName(group.creator_id || group.creatorId)}`),
+                    React.createElement("p", { className: "group-members" }, `Участников: ${group.member_count || (group.members?.length || 0)}`),
+                    isMember(group.id)
+                        ? React.createElement("button", { onClick: () => onLeaveGroup(group.id), className: "btn btn-danger btn-full" }, "Выйти")
+                        : React.createElement("button", { onClick: () => onJoinGroup(group.id), className: "btn btn-primary btn-full" }, "Вступить")
+                )
+            )
+        ),
+        showModal && React.createElement("div", { className: "modal", onClick: () => setShowModal(false) },
+            React.createElement("form", { onSubmit: handleCreate, className: "modal-content", onClick: (e) => e.stopPropagation() },
+                React.createElement("h3", { className: "modal-title" }, "Создать группу"),
+                React.createElement("div", { className: "form-group" },
+                    React.createElement("label", { className: "form-label" }, "Название"),
+                    React.createElement("input", { type: "text", placeholder: "Например: 10-Б Класс", value: newGroupName, onChange: (e) => setNewGroupName(e.target.value), className: "form-input", required: true })
+                ),
+                React.createElement("div", { className: "modal-actions" },
+                    React.createElement("button", { type: "button", onClick: () => setShowModal(false), className: "btn btn-secondary" }, "Отмена"),
+                    React.createElement("button", { type: "submit", className: "btn btn-primary" }, "Создать")
+                )
+            )
+        )
     );
 };

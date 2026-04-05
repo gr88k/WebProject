@@ -64,7 +64,7 @@ function runTests() {
         container.innerHTML = html;
     }
     
-    console.log(`🧪 Тесты: ${passed} passed, ${failed} failed`);
+    console.log(`Тесты: ${passed} passed, ${failed} failed`);
     results.forEach(r => console.log(`${r.pass ? '✅' : '❌'} ${r.name}`));
 }
 
